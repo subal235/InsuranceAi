@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="AI-powered insurance claims automation with instant USDC payouts" />
+  <title>InsuranceAI - Automated Claims Processing</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
+</head>
+
+<body>
+  <div id="app">
+    <header class="header">
+      <div class="container">
+        <div class="header-content">
+          <div class="logo" id="logo-btn">
+            <div class="logo-icon">
+              <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                <path d="M16 2L4 8V14C4 22 10 28 16 30C22 28 28 22 28 14V8L16 2Z" fill="url(#logo-gradient)"
+                  stroke="white" strokeWidth="2" />
+                <defs>
+                  <linearGradient id="logo-gradient" x1="4" y1="2" x2="28" y2="30">
+                    <stop offset="0%" stopColor="#6366f1" />
+                    <stop offset="100%" stopColor="#8b5cf6" />
+                  </linearGradient>
+                </defs>
+              </svg>
+            </div>
+            <span class="logo-text">InsuranceAI</span>
+          </div>
+
+          <nav class="nav">
+            <a href="#" class="nav-link" id="nav-dashboard">Dashboard</a>
+            <a href="#" class="nav-link" id="nav-pool">Liquidity Pool</a>
+            <a href="#" class="nav-link" id="nav-oracle">Oracle Simulator</a>
+            <button id="wallet-btn" class="btn btn-primary">Connect Wallet</button>
+          </nav>
+        </div>
+      </div>
+    </header>
+
+    <!-- Login Modal -->
+    <div id="login-modal" class="modal hidden">
+      <div class="modal-overlay"></div>
+      <div class="modal-content animate-slideUp">
+        <button class="modal-close" id="close-login-btn">&times;</button>
+        <div class="modal-header">
+          <h2>Sign In</h2>
+          <p>Choose your preferred way to access InsuranceAI</p>
+        </div>
+        <div class="login-options">
+          <button class="login-option-btn web3" id="login-metamask">
+            <div class="option-icon">👛</div>
+            <div class="option-info">
+              <span class="option-title">Circle / Arc Wallet</span>
+              <span class="option-desc">Connect via Gateway or MetaMask</span>
+            </div>
+          </button>
+
+          <div class="login-option-btn encrypted" id="login-email-container"
+            style="display:flex; flex-direction:column; gap:0.5rem; cursor:default; height:auto;">
+            <div style="display:flex; align-items:center; gap:1rem;">
+              <div class="option-icon">🔐</div>
+              <div class="option-info">
+                <span class="option-title">Privacy-First Identity</span>
+                <span class="option-desc">Secure, anonymous account via file-key</span>
+              </div>
+            </div>
+            <div style="display:flex; gap:0.5rem; margin-top:0.5rem; width:100%;">
+              <button class="btn btn-outline btn-sm" id="create-key-btn" style="flex:1; font-size:0.8rem;">Generate
+                New</button>
+              <button class="btn btn-outline btn-sm" id="load-key-btn" style="flex:1; font-size:0.8rem;">Load Key
+                File</button>
+            </div>
+            <input type="file" id="key-file-input" hidden accept=".json,.txt">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <p>🔒 All sessions are encrypted and stored locally only.</p>
+          <p class="privacy-note">Zero-Knowledge proof: Your identity never leaves your device.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Payment Choice Modal -->
+    <div id="payment-choice-modal" class="modal hidden">
+      <div class="modal-overlay"></div>
+      <div class="modal-content animate-slideUp" style="max-width: 450px;">
+        <button class="modal-close" id="close-choice-btn">&times;</button>
+        <div class="modal-header">
+          <h2>Select Payment Method</h2>
+          <p>How would you like to pay for your <span id="choice-policy-type"></span> policy?</p>
+        </div>
+        <div class="login-options">
+          <button class="login-option-btn web3" id="pay-metamask-btn">
+            <div class="option-icon">🦊</div>
+            <div class="option-info">
+              <span class="option-title">Pay with MetaMask</span>
+              <span class="option-desc">Automatic on-chain transfer</span>
+            </div>
+          </button>
+
+          <button class="login-option-btn encrypted" id="pay-qr-btn">
+            <div class="option-icon">⚡</div>
+            <div class="option-info">
+              <span class="option-title">x402 Micropayment Scan</span>
+              <span class="option-desc">Web-native usage-based payment flow</span>
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- QR Payment Modal -->
+    <div id="payment-modal" class="modal hidden">
+      <div class="modal-overlay"></div>
+      <div class="modal-content animate-slideUp" style="max-width: 400px; text-align: center;">
+        <button class="modal-close" id="close-payment-btn">&times;</button>
+        <div class="modal-header">
+          <h2>Usage-Based Settlement</h2>
+          <p>Scan to authorize x402 USDC micropayment</p>
+        </div>
+        <div class="qr-container"
+          style="background: white; padding: 1.5rem; border-radius: var(--radius-lg); margin: 1.5rem 0; display: inline-block;">
+          <img id="payment-qr" src="" alt="Payment QR"
+            style="width: 200px; height: 200px; display: block; margin: 0 auto; filter: none;">
+        </div>
+        <div class="payment-info"
+          style="text-align: left; background: rgba(255,255,255,0.05); padding: 1rem; border-radius: var(--radius-md);">
+          <div style="font-size: 0.8rem; color: var(--color-text-tertiary); margin-bottom: 0.5rem;">Protocol Address:
+          </div>
+          <code id="payment-address"
+            style="word-break: break-all; font-size: 0.75rem; color: var(--color-primary);">0xcE33FBE1a657cFaDea3Bb594b15857C08d9E6Ad6</code>
+          <div style="margin-top: 1rem; font-weight: 600;">Amount: <span id="payment-amount" class="text-gradient">0.01
+              ARC</span></div>
+        </div>
+        <div class="modal-actions" style="margin-top: 1.5rem;">
+          <button id="verify-payment-btn" class="btn btn-primary" style="width: 100%;">I have sent the payment</button>
+        </div>
+      </div>
+    </div>
+
+    <main id="main-content">
+      <!-- Hero Section (Default) -->
+      <section id="hero-view" class="hero animate-fadeIn">
+        <div class="container">
+          <div class="hero-content">
+            <div class="hero-badge" style="margin-bottom: 2rem;">
+              <span class="badge"
+                style="background: rgba(99, 102, 241, 0.1); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.2); font-size: 0.8rem; font-weight: 600;">
+                🏆 2026 Arc x Circle Agentic Commerce Hackathon
+              </span>
+            </div>
+
+            <div class="hero-badge">
+              <span class="badge badge-primary">
+                <span class="pulse-dot"></span>
+                Trustless AI Settlement on Arc L1
+              </span>
+            </div>
+
+            <h1 class="hero-title">
+              Insurance Claims<br />
+              <span class="text-gradient">Processed in Seconds</span>
+            </h1>
+
+            <p class="hero-description">
+              Submit your claim, get AI-powered fraud analysis, and receive instant USDC payouts.
+              Complete transparency with immutable Arweave audit trails.
+            </p>
+
+            <div class="hero-actions">
+              <button id="start-claim-btn" class="btn btn-primary btn-lg">Submit a Claim</button>
+              <button id="buy-policy-btn" class="btn btn-secondary btn-lg">Buy Insurance</button>
+              <button id="view-dashboard-btn" class="btn btn-outline btn-lg">View Dashboard</button>
+            </div>
+            <div class="hero-secondary-actions"
+              style="margin-top: 2rem; display: flex; gap: 1rem; justify-content: center;">
+              <button id="view-analytics-btn" class="btn btn-link">📈 Analytics</button>
+              <button id="view-about-btn" class="btn btn-link">ℹ️ How it Works</button>
+              <button id="view-settings-btn" class="btn btn-link">⚙️ Settings</button>
+            </div>
+
+            <div class="hero-stats">
+              <div class="stat-item">
+                <div class="stat-value">10s</div>
+                <div class="stat-label">Processing Time</div>
+              </div>
+              <div class="stat-divider"></div>
+              <div class="stat-item">
+                <div class="stat-value">90%+</div>
+                <div class="stat-label">Accuracy</div>
+              </div>
+              <div class="stat-divider"></div>
+              <div class="stat-item">
+                <div class="stat-value">$0.0001</div>
+                <div class="stat-label">Transaction Cost</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Claim Form Section (Hidden initially) -->
+      <section id="form-view" class="section hidden">
+        <div class="container">
+          <button id="back-to-hero" class="btn btn-secondary" style="margin-bottom: 2rem;">
+            ← Back to Home
+          </button>
+          <div class="claim-form-container">
+            <div class="form-header">
+              <h2>Submit Your Claim</h2>
+              <p>Fill out the form below - our AI will analyze it instantly</p>
+            </div>
+            <form id="claim-form" class="claim-form">
+              <!-- Step 1 -->
+              <div class="form-group">
+                <label class="form-label">
+                  <span class="step-badge">Step 1</span>
+                  What happened? *
+                </label>
+                <textarea id="description" class="form-textarea"
+                  placeholder="Example: My car was damaged in a parking lot. The front bumper has a large dent and scratches on the driver's side door. This happened on January 15th at the downtown mall..."
+                  required minlength="10" rows="5"></textarea>
+                <small class="form-hint">Minimum 10 characters - be specific for better results</small>
+              </div>
+
+              <!-- Step 2 & 3 in a row -->
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">
+                    <span class="step-badge">Step 2</span>
+                    Claim Amount *
+                  </label>
+                  <div class="input-with-prefix">
+                    <span class="input-prefix">$</span>
+                    <input type="number" id="amount" class="form-input" placeholder="500.00" required step="0.01"
+                      min="0.10" max="10000">
+                    <span class="input-suffix">USDC</span>
+                  </div>
+                  <small class="form-hint">Min: $0.10 • Max: $10,000</small>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">
+                    <span class="step-badge">Step 3</span>
+                    Your Wallet Address *
+                  </label>
+                  <input type="text" id="wallet-address" class="form-input" placeholder="0x..." required>
+                  <small class="form-hint">Arc/EVM compatible address</small>
+                </div>
+              </div>
+
+              <button type="submit" id="submit-btn" class="btn btn-primary btn-lg" style="width: 100%;">
+                <span>Analyze Claim with AI</span>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                  <path
+                    d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" />
+                </svg>
+              </button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <!-- Dashboard View Section (Hidden initially) -->
+      <section id="dashboard-view" class="section hidden">
+        <div class="container">
+          <button id="back-to-hero-dashboard" class="btn btn-secondary" style="margin-bottom: 2rem;">
+            ← Back to Home
+          </button>
+
+          <div class="dashboard-container">
+            <div class="dashboard-header">
+              <h2>My Claims Dashboard</h2>
+              <p id="dashboard-wallet"></p>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="stats-grid-dashboard">
+              <div class="stat-card-dashboard">
+                <div class="stat-icon">📊</div>
+                <div class="stat-number" id="total-claims">0</div>
+                <div class="stat-label">Total Claims</div>
+              </div>
+              <div class="stat-card-dashboard">
+                <div class="stat-icon">✅</div>
+                <div class="stat-number" id="approved-claims">0</div>
+                <div class="stat-label">Approved</div>
+              </div>
+              <div class="stat-card-dashboard">
+                <div class="stat-icon">❌</div>
+                <div class="stat-number" id="rejected-claims">0</div>
+                <div class="stat-label">Rejected</div>
+              </div>
+              <div class="stat-card-dashboard">
+                <div class="stat-icon">💰</div>
+                <div class="stat-number" id="total-payout">$0.00</div>
+                <div class="stat-label">Total Payout</div>
+              </div>
+            </div>
+
+            <!-- Active Policies -->
+            <div class="active-policies-container" style="margin: 2.5rem 0;">
+              <h3 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                🛡️ Active Coverage
+              </h3>
+              <div id="active-policies-list" class="policy-list-dashboard">
+                <p class="loading">Fetching your protection status...</p>
+              </div>
+            </div>
+
+            <!-- Claims Table -->
+            <div class="claims-table-container">
+              <h3>Claim History</h3>
+              <div id="claims-list">
+                <p class="loading">Loading claims...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Result View Section (Hidden initially) -->
+      <section id="result-view" class="section hidden">
+        <div class="container">
+          <div id="result-content"></div>
+        </div>
+      </section>
+
+      <!-- Policy Purchase Screen -->
+      <section id="policy-view" class="section hidden">
+        <div class="container">
+          <button id="back-to-hero-policy" class="btn btn-secondary" style="margin-bottom: 2rem;">
+            ← Back to Home
+          </button>
+
+          <div class="policy-container">
+            <div class="policy-header">
+              <h2>Choose Your Coverage</h2>
+              <p>Select the perfect insurance plan for your needs</p>
+            </div>
+
+            <div class="policy-controls"
+              style="margin-bottom: 3rem; display: flex; gap: 2rem; justify-content: center; background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: var(--radius-lg);">
+              <div class="control-item">
+                <label class="toggle-label" style="display: flex; align-items: center; gap: 1rem; cursor: pointer;">
+                  <span style="font-weight: 600;">Enable Shielded Privacy</span>
+                  <input type="checkbox" id="privacy-toggle" class="privacy-checkbox">
+                  <span class="privacy-badge">Arc Private</span>
+                </label>
+                <p style="font-size: 0.8rem; color: var(--color-text-secondary); margin-top: 0.5rem;">Uses Arc L1
+                  privacy features for untraceable payout settlement.</p>
+              </div>
+            </div>
+
+            <div class="policy-grid">
+              <!-- Health Insurance -->
+              <div class="policy-card" data-type="HEALTH">
+                <div class="policy-icon">🏥</div>
+                <h3>Health Protection</h3>
+                <p>Enterprise-grade medical security</p>
+                <div class="policy-features">
+                  <div class="feature">✓ 24/7 Virtual Consultation</div>
+                  <div class="feature">✓ Hospitalization & Surgery</div>
+                  <div class="feature">✓ Critical Illness Support</div>
+                  <div class="feature">✓ Global Network Coverage</div>
+                </div>
+                <div class="policy-stats"
+                  style="display: flex; justify-content: space-around; padding: 1rem 0; font-size: 0.8rem; border-top: 1px solid rgba(255,255,255,0.05); margin-top: 1rem;">
+                  <div style="text-align: center;">
+                    <div style="font-weight: 700; color: var(--color-primary);">$10k</div>Limit
+                  </div>
+                  <div style="text-align: center;">
+                    <div style="font-weight: 700; color: var(--color-primary);">365d</div>Duration
+                  </div>
+                </div>
+                <div class="policy-price">
+                  <span class="price">$0.50</span>
+                  <span class="period">/month</span>
+                </div>
+                <button class="btn btn-primary btn-select-policy" data-type="HEALTH">
+                  Secure Health
+                </button>
+              </div>
+
+              <!-- Vehicle Insurance -->
+              <div class="policy-card" data-type="VEHICLE">
+                <div class="policy-icon">🚗</div>
+                <h3>Vehicle Protection</h3>
+                <p>Smart on-chain auto ledger</p>
+                <div class="policy-features">
+                  <div class="feature">✓ Collision & Damage</div>
+                  <div class="feature">✓ Full Theft Protection</div>
+                  <div class="feature">✓ Integrated Roadside</div>
+                  <div class="feature">✓ Zero-Deductible Claims</div>
+                </div>
+                <div class="policy-stats"
+                  style="display: flex; justify-content: space-around; padding: 1rem 0; font-size: 0.8rem; border-top: 1px solid rgba(255,255,255,0.05); margin-top: 1rem;">
+                  <div style="text-align: center;">
+                    <div style="font-weight: 700; color: var(--color-primary);">$15k</div>Limit
+                  </div>
+                  <div style="text-align: center;">
+                    <div style="font-weight: 700; color: var(--color-primary);">1 Year</div>Terms
+                  </div>
+                </div>
+                <div class="policy-price">
+                  <span class="price">$0.75</span>
+                  <span class="period">/month</span>
+                </div>
+                <button class="btn btn-primary btn-select-policy" data-type="VEHICLE">
+                  Protect Vehicle
+                </button>
+              </div>
+
+              <!-- Parametric (Winner Feature) -->
+              <div class="policy-card featured" data-type="PARAMETRIC">
+                <div class="featured-badge">Instant Pay</div>
+                <div class="policy-icon">🌩️</div>
+                <h3>Parametric Oracle</h3>
+                <p>AI-Verified event triggers</p>
+                <div class="policy-features">
+                  <div class="feature">✓ Instant AI Settlement</div>
+                  <div class="feature">✓ No Paperwork Required</div>
+                  <div class="feature">✓ Oracle Data Feed Truth</div>
+                  <div class="feature">✓ Direct L1 ARC Payout</div>
+                </div>
+                <div class="policy-stats"
+                  style="display: flex; justify-content: space-around; padding: 1rem 0; font-size: 0.8rem; border-top: 1px solid rgba(255,255,255,0.05); margin-top: 1rem;">
+                  <div style="text-align: center;">
+                    <div style="font-weight: 700; color: var(--color-primary);">$5k</div>Max Pay
+                  </div>
+                  <div style="text-align: center;">
+                    <div style="font-weight: 700; color: var(--color-primary);">Instant</div>Settling
+                  </div>
+                </div>
+                <div class="policy-price">
+                  <span class="price">$1.20</span>
+                  <span class="period">/month</span>
+                </div>
+                <div class="parametric-trigger-select" style="margin: 1rem 0;">
+                  <select id="trigger-type" class="form-input"
+                    style="background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1);">
+                    <option value="FLIGHT_DELAY">Flight Delay > 2h</option>
+                    <option value="EARTHQUAKE_7">Earthquake > 7.0</option>
+                    <option value="HURRICANE_4">Hurricane Cat 4+</option>
+                  </select>
+                </div>
+                <button class="btn btn-primary btn-select-policy" data-type="PARAMETRIC">
+                  Activate Oracle
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Evidence Upload Screen -->
+      <section id="evidence-view" class="section hidden">
+        <div class="container">
+          <button id="back-to-form-evidence" class="btn btn-secondary" style="margin-bottom: 2rem;">
+            ← Back to Claim
+          </button>
+
+          <div class="evidence-container">
+            <div class="evidence-header">
+              <h2>Upload Evidence</h2>
+              <p>Add photos or videos to support your claim</p>
+            </div>
+
+            <div class="upload-zone" id="upload-zone">
+              <div class="upload-icon">📸</div>
+              <h3>Drag & Drop Files Here</h3>
+              <p>or click to browse</p>
+              <input type="file" id="file-input" accept="image/*,video/*" multiple hidden>
+              <button class="btn btn-secondary" id="browse-btn">Browse Files</button>
+            </div>
+
+            <div id="preview-container" class="preview-container hidden">
+              <h3>Uploaded Files</h3>
+              <div id="file-previews"></div>
+            </div>
+
+            <div id="analysis-results" class="analysis-results hidden">
+              <h3>AI Analysis Results</h3>
+              <div id="analysis-content"></div>
+
+              <div class="agent-thinking-area" style="margin-top: 2rem;">
+                <h4 style="color: var(--color-primary); margin-bottom: 1rem;">🛰️ Live Agent Swarm Activity</h4>
+                <div id="agent-thinking-log" class="thinking-log">
+                  <!-- Steps will appear here during processing -->
+                </div>
+              </div>
+            </div>
+
+            <button class="btn btn-primary btn-lg" id="analyze-evidence-btn" style="width: 100%; margin-top: 2rem;"
+              disabled>
+              Analyze with AI
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Claim Detail View -->
+      <section id="claim-detail-view" class="section hidden">
+        <div class="container">
+          <button id="back-to-dashboard-detail" class="btn btn-secondary" style="margin-bottom: 2rem;">
+            ← Back to Dashboard
+          </button>
+
+          <div class="claim-detail-container">
+            <div id="claim-detail-content">
+              <!-- Will be populated dynamically -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Analytics Dashboard -->
+      <section id="analytics-view" class="section hidden">
+        <div class="container">
+          <button id="back-to-hero-analytics" class="btn btn-secondary" style="margin-bottom: 2rem;">
+            ← Back to Home
+          </button>
+
+          <div class="analytics-container">
+            <div class="analytics-header">
+              <h2>Platform Analytics</h2>
+              <p>Real-time insights and statistics</p>
+            </div>
+
+            <div class="analytics-grid">
+              <div class="analytics-card">
+                <div class="analytics-icon">⚡</div>
+                <div class="analytics-value" id="avg-processing-time">~10s</div>
+                <div class="analytics-label">Avg Processing Time</div>
+              </div>
+              <div class="analytics-card">
+                <div class="analytics-icon">🎯</div>
+                <div class="analytics-value" id="accuracy-rate">95%</div>
+                <div class="analytics-label">AI Accuracy</div>
+              </div>
+              <div class="analytics-card">
+                <div class="analytics-icon">💎</div>
+                <div class="analytics-value" id="total-payouts">$0.00</div>
+                <div class="analytics-label">Total Payouts</div>
+              </div>
+              <div class="analytics-card">
+                <div class="analytics-icon">🔒</div>
+                <div class="analytics-value" id="fraud-prevented">0</div>
+                <div class="analytics-label">Fraud Prevented</div>
+              </div>
+            </div>
+
+            <div class="chart-container">
+              <h3>Claim Distribution</h3>
+              <div class="chart-placeholder">
+                <div class="chart-bar" style="--height: 60%">
+                  <span class="bar-label">Health</span>
+                  <span class="bar-value">60%</span>
+                </div>
+                <div class="chart-bar" style="--height: 80%">
+                  <span class="bar-label">Vehicle</span>
+                  <span class="bar-value">80%</span>
+                </div>
+                <div class="chart-bar" style="--height: 40%">
+                  <span class="bar-label">Property</span>
+                  <span class="bar-value">40%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Settings Screen -->
+      <section id="settings-view" class="section hidden">
+        <div class="container">
+          <button id="back-to-hero-settings" class="btn btn-secondary" style="margin-bottom: 2rem;">
+            ← Back to Home
+          </button>
+
+          <div class="settings-container">
+            <div class="settings-header">
+              <h2>Settings</h2>
+              <p>Manage your account and preferences</p>
+            </div>
+
+            <div class="settings-section">
+              <h3>Wallet</h3>
+              <div class="setting-item">
+                <div class="setting-label">Connected Wallet</div>
+                <div class="setting-value" id="settings-wallet">Not connected</div>
+              </div>
+              <div class="setting-item">
+                <div class="setting-label">Network</div>
+                <div class="setting-value">Arc Testnet</div>
+              </div>
+            </div>
+
+            <div class="settings-section">
+              <h3>Notifications</h3>
+              <div class="setting-item">
+                <div class="setting-label">Claim Updates</div>
+                <label class="toggle">
+                  <input type="checkbox" checked>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div class="setting-item">
+                <div class="setting-label">Payout Alerts</div>
+                <label class="toggle">
+                  <input type="checkbox" checked>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <div class="settings-section">
+              <h3>Preferences</h3>
+              <div class="setting-item">
+                <div class="setting-label">Theme</div>
+                <select class="setting-select">
+                  <option>Dark Mode</option>
+                  <option>Light Mode</option>
+                  <option>Auto</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- About Screen -->
+      <section id="about-view" class="section hidden">
+        <div class="container">
+          <button id="back-to-hero-about" class="btn btn-secondary" style="margin-bottom: 2rem;">
+            ← Back to Home
+          </button>
+
+          <div class="about-container">
+            <div class="about-header">
+              <h2>How InsuranceAI Works</h2>
+              <p>The future of insurance claims processing</p>
+            </div>
+
+            <div class="how-it-works">
+              <div class="step-card">
+                <div class="step-number">1</div>
+                <h3>Circle Gateway Identity</h3>
+                <p>Secure login via Circle Wallets or Privacy Keys. Your identity is siloed for maximum protection.</p>
+              </div>
+              <div class="step-card">
+                <div class="step-number">2</div>
+                <h3>Micropayment Issuance</h3>
+                <p>Purchase coverage using x402-native payment flows with USDC on the Arc Network.</p>
+              </div>
+              <div class="step-card">
+                <div class="step-number">3</div>
+                <h3>Agentic Settlement</h3>
+                <p>Autonomous AI Swarm verifies evidence and executes payouts without human intervention.</p>
+              </div>
+              <div class="step-card">
+                <div class="step-number">4</div>
+                <h3>Onchain Finality</h3>
+                <p>All settlements occur on Arc L1 with USDC, providing instant liquidity and auditability.</p>
+              </div>
+            </div>
+
+            <div class="tech-stack-section">
+              <h3>Built With</h3>
+              <div class="tech-grid">
+                <div class="tech-item">
+                  <div class="tech-icon">🤖</div>
+                  <div class="tech-name">Google Gemini</div>
+                  <div class="tech-desc">AI & Vision</div>
+                </div>
+                <div class="tech-item">
+                  <div class="tech-icon">🔗</div>
+                  <div class="tech-name">LangGraph</div>
+                  <div class="tech-desc">Multi-Agent</div>
+                </div>
+                <div class="tech-item">
+                  <div class="tech-icon">💰</div>
+                  <div class="tech-name">Circle USDC</div>
+                  <div class="tech-desc">Gateway & x402</div>
+                </div>
+                <div class="tech-item">
+                  <div class="tech-icon">⚡</div>
+                  <div class="tech-name">Arc L1</div>
+                  <div class="tech-desc">EVM Settlement</div>
+                </div>
+                <div class="tech-item">
+                  <div class="tech-icon">🐘</div>
+                  <div class="tech-name">Arweave</div>
+                  <div class="tech-desc">Permanent Audit</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      <!-- Liquidity Pool Screen -->
+      <section id="pool-view" class="section hidden">
+        <div class="container">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <button class="btn btn-secondary back-to-hero">← Back to Home</button>
+            <div class="pool-trust-badges" style="display: flex; gap: 1rem;">
+              <span class="badge"
+                style="background: rgba(16, 185, 129, 0.1); color: var(--color-success); border: 1px solid var(--color-success);">🛡️
+                Audited by Gemini AI</span>
+              <span class="badge"
+                style="background: rgba(59, 130, 246, 0.1); color: var(--color-primary); border: 1px solid var(--color-primary);">⛓️
+                Arc L1 Secured</span>
+            </div>
+          </div>
+
+          <div class="pool-container">
+            <div class="pool-header">
+              <h2 class="text-gradient">Institutional Reinsurance Pool</h2>
+              <p>Back the protocol's solvency. Provide USDC liquidity to the risk-pool and capture premium yields.</p>
+            </div>
+
+            <div class="pool-main-stats"
+              style="background: rgba(255,255,255,0.03); padding: 2rem; border-radius: var(--radius-lg); border: 1px solid rgba(255,255,255,0.05); margin-bottom: 2.5rem;">
+              <div class="pool-stats-grid">
+                <div class="pool-stat-card">
+                  <div class="stat-label">Total Protocol TVL</div>
+                  <div class="stat-value" id="pool-tvl">$14,250,000</div>
+                  <div class="stat-trend positive">↑ $1.2M this month</div>
+                </div>
+                <div class="pool-stat-card">
+                  <div class="stat-label">Real-Time Yield (APY)</div>
+                  <div class="stat-value" id="pool-yield">12.4%</div>
+                  <div class="stat-trend">Sourced from Active Premiums</div>
+                </div>
+                <div class="pool-stat-card">
+                  <div class="stat-label">Protocol Solvency</div>
+                  <div class="stat-value">340%</div>
+                  <div class="stat-trend positive">Over-Collateralized</div>
+                </div>
+                <div class="pool-stat-card" style="border-left: 2px solid var(--color-primary);">
+                  <div class="stat-label">Your Stake</div>
+                  <div class="stat-value" id="user-stake-val">$0.00</div>
+                  <div class="stat-trend" id="user-rewards" style="color: var(--color-success);">0.00 ARC / USDC</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="pool-actions-container">
+              <div class="stake-form-card">
+                <h3>Provide Capital</h3>
+                <div class="form-group">
+                  <label>Amount to Stake (USDC)</label>
+                  <div class="input-with-prefix">
+                    <span class="input-prefix">$</span>
+                    <input type="number" id="stake-amount" class="form-input" placeholder="5,000.00">
+                  </div>
+                </div>
+
+                <div class="staking-projections"
+                  style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1.5rem; font-size: 0.85rem;">
+                  <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                    <span style="color: var(--color-text-tertiary);">Est. Monthly Earnings:</span>
+                    <span id="est-earnings" style="color: var(--color-success); font-weight: 600;">$0.00</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between;">
+                    <span style="color: var(--color-text-tertiary);">Pool Share:</span>
+                    <span id="pool-share" style="color: var(--color-primary);">0.00%</span>
+                  </div>
+                </div>
+
+                <button class="btn btn-primary btn-lg" id="stake-btn" style="width: 100%;">Initiate Liquidity
+                  Deposit</button>
+                <!-- Personal Staking Portfolio Dashboard -->
+                <div class="personal-stake-dashboard"
+                  style="margin-top: 2rem; padding: 1.5rem; background: rgba(99, 102, 241, 0.05); border: 1px solid rgba(99, 102, 241, 0.1); border-radius: var(--radius-lg);">
+                  <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem;">
+                    <div
+                      style="width: 32px; height: 32px; background: var(--color-primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.9rem;">
+                      🪙</div>
+                    <h4 style="margin: 0; font-size: 1rem; color: white;">Your Liquidity Portfolio</h4>
+                  </div>
+
+                  <div class="stake-stats-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="mini-stat">
+                      <span
+                        style="display: block; font-size: 0.75rem; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.5px;">Capital
+                        Provided</span>
+                      <span id="user-stake-bottom"
+                        style="font-size: 1.25rem; font-weight: 700; color: white;">$0.00</span>
+                    </div>
+                    <div class="mini-stat">
+                      <span
+                        style="display: block; font-size: 0.75rem; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.5px;">Protocol
+                        Yield</span>
+                      <span style="font-size: 1.25rem; font-weight: 700; color: var(--color-success);">+12.4%</span>
+                    </div>
+                  </div>
+
+                  <div style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.05);">
+                    <div
+                      style="display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--color-text-secondary); margin-bottom: 0.5rem;">
+                      <span>Estimated Annual Return</span>
+                      <b id="user-apy-return" style="color: var(--color-success);">$0.00</b>
+                    </div>
+                    <div
+                      style="display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--color-text-secondary);">
+                      <span>Current Pool Ownership</span>
+                      <b id="user-pool-share-stats" style="color: var(--color-primary);">0.0000%</b>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="pool-activity-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                  <h3>Live Protocol Ledger</h3>
+                  <span class="pulse-dot"></span>
+                </div>
+                <div id="pool-activity-list" class="activity-list">
+                  <div class="activity-item loading">Syncing with Arc L1...</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Oracle Simulator Screen -->
+      <section id="oracle-view" class="section hidden">
+        <div class="container">
+          <button class="btn btn-secondary back-to-hero" style="margin-bottom: 2rem;">← Back to Home</button>
+
+          <div class="oracle-container">
+            <div class="oracle-header">
+              <h2>AI Oracle Simulator</h2>
+              <p>Test the Parametric "Instant Trigger" engine with real-time data simulation</p>
+            </div>
+
+            <div class="oracle-grid">
+              <div class="sensor-wall">
+                <h3>🛰️ Global Sensor Grid</h3>
+                <div class="sensor-grid">
+                  <div class="sensor-card" data-sensor="seismic">
+                    <div class="sensor-icon">🌋</div>
+                    <div class="sensor-data">
+                      <span class="sensor-name">Seismic Node #42</span>
+                      <span class="sensor-value" id="sensor-seismic">0.1 Mag</span>
+                    </div>
+                    <div class="sensor-status status-online">Stable</div>
+                  </div>
+                  <div class="sensor-card" data-sensor="weather">
+                    <div class="sensor-icon">🌤️</div>
+                    <div class="sensor-data">
+                      <span class="sensor-name">LHR Weather Stn</span>
+                      <span class="sensor-value" id="sensor-weather">Clear</span>
+                    </div>
+                    <div class="sensor-status status-online">Stable</div>
+                  </div>
+                </div>
+
+                <div class="simulator-controls" style="margin-top: 2rem;">
+                  <h3>Trigger Simulation event</h3>
+                  <div class="simulation-options">
+                    <button class="btn btn-outline trigger-sim-btn" data-event="earthquake_8">
+                      Trigger Earthquake (8.2 Mag)
+                    </button>
+                    <button class="btn btn-outline trigger-sim-btn" data-event="flight_delay">
+                      Simulate Major Flight Delay
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="oracle-execution-wall">
+                <h3>⚡ Execution Log</h3>
+                <div id="oracle-log" class="thinking-log">
+                  <div class="log-entry">Waiting for sensory input...</div>
+                </div>
+
+                <div id="oracle-payout-proof" class="hidden animate-fadeIn" style="margin-top: 1.5rem;">
+                  <div class="proof-card success">
+                    <h4>✅ Instant Trigger Executed</h4>
+                    <p>AI Oracle verified the event. USDC settlement initiated on Arc L1.</p>
+                    <a href="#" class="proof-link" id="oracle-tx-link" target="_blank">View Arc Transaction</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>Built with LangGraph, Arc L1 & Arweave | © 2026 InsuranceAI</p>
+    </footer>
+  </div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+
+</html>
